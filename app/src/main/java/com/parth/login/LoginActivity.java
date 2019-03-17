@@ -99,7 +99,7 @@ public class LoginActivity extends AppCompatActivity {
                         // login user
                         loginProcess(email, password);
                     } else {
-                        Toast.makeText(getApplicationContext(), "Email is not valid!", Toast.LENGTH_SHORT).show();
+                        inputEmail.setError("Enter Valid Email Address");
                     }
                 } else {
                     // Prompt user to enter credentials
