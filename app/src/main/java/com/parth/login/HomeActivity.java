@@ -4,13 +4,18 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.TextInputLayout;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -42,10 +47,24 @@ public class HomeActivity extends AppCompatActivity {
     private Button btnChangePass, btnLogout;
     private SessionManager session;
     private DatabaseHandler db;
+    private DrawerLayout dl;
+    private ActionBarDrawerToggle t;
+    private NavigationView nv;
 
     private ProgressDialog pDialog;
 
     private HashMap<String,String> user = new HashMap<>();
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if(t.onOptionsItemSelected(item))
+            return true;
+
+        return super.onOptionsItemSelected(item);
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +82,119 @@ public class HomeActivity extends AppCompatActivity {
 
         db = new DatabaseHandler(getApplicationContext());
         user = db.getUserDetails();
+
+
+
+
+
+        dl = (DrawerLayout)findViewById(R.id.activity_main);
+        t = new ActionBarDrawerToggle(this, dl,R.string.Open, R.string.Close);
+
+        dl.addDrawerListener(t);
+        t.syncState();
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        nv = (NavigationView)findViewById(R.id.nv);
+        nv.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                switch (id) {
+                    case R.id.logout:
+                        logoutUser();
+
+                    case R.id.changepass:
+
+                        final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(HomeActivity.this);
+                        LayoutInflater inflater = getLayoutInflater();
+                        View dialogView = inflater.inflate(R.layout.change_password, null);
+
+                        dialogBuilder.setView(dialogView);
+                        dialogBuilder.setTitle("Change Password");
+                        dialogBuilder.setCancelable(false);
+
+                        final TextInputLayout oldPassword = (TextInputLayout) dialogView.findViewById(R.id.old_password);
+                        final TextInputLayout newPassword = (TextInputLayout) dialogView.findViewById(R.id.new_password);
+
+                        dialogBuilder.setPositiveButton("Change",  new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // empty
+                            }
+                        });
+
+                        dialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+
+                        final AlertDialog alertDialog = dialogBuilder.create();
+
+                        TextWatcher textWatcher = new TextWatcher() {
+                            @Override
+                            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                            }
+
+                            @Override
+                            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                                if(oldPassword.getEditText().getText().length() > 0 &&
+                                        newPassword.getEditText().getText().length() > 0){
+                                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                                } else {
+                                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                                }
+                            }
+
+                            @Override
+                            public void afterTextChanged(Editable s) {
+                            }
+                        };
+
+                        oldPassword.getEditText().addTextChangedListener(textWatcher);
+                        newPassword.getEditText().addTextChangedListener(textWatcher);
+
+                        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                            @Override
+                            public void onShow(final DialogInterface dialog) {
+                                final Button b = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                                b.setEnabled(false);
+
+                                b.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        String email = user.get("email");
+                                        String old_pass = oldPassword.getEditText().getText().toString();
+                                        String new_pass = newPassword.getEditText().getText().toString();
+
+                                        if (!old_pass.isEmpty() && !new_pass.isEmpty()) {
+                                            changePassword(email, old_pass, new_pass);
+                                            dialog.dismiss();
+                                        } else {
+                                            Toast.makeText(getApplicationContext(), "Fill all values!", Toast.LENGTH_SHORT).show();
+                                        }
+
+                                    }
+                                });
+                            }
+                        });
+
+                        alertDialog.show();
+
+
+                    default:
+                        return true;
+                }
+            }
+
+
+
+
+        });
+
+
 
         // session manager
         session = new SessionManager(getApplicationContext());
@@ -96,6 +228,7 @@ public class HomeActivity extends AppCompatActivity {
         btnChangePass.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(HomeActivity.this);
                 LayoutInflater inflater = getLayoutInflater();
                 View dialogView = inflater.inflate(R.layout.change_password, null);
